@@ -1,10 +1,10 @@
+import discord
 import time
 import json
 import os
-import discord
 from core.logger import logger
 
-def capture_guild_snapshot(guild):
+def save_snapshot(guild):
     """
     Captures a complete image of the server: every channel, category, role,
     permission overwrite, emoji, sticker.
@@ -20,12 +20,12 @@ def capture_guild_snapshot(guild):
         "stickers": []
     }
 
-    # Channels
+    # Channels and Overwrites
     for channel in guild.channels:
         channel_data = {
             "id": channel.id,
             "name": channel.name,
-            "type": channel.type.name, # Use .name (e.g. 'text', 'voice', 'category')
+            "type": channel.type.name,
             "position": channel.position,
             "parent_id": channel.category_id,
             "permission_overwrites": []
@@ -60,27 +60,17 @@ def capture_guild_snapshot(guild):
             "animated": emoji.animated
         })
 
-    # Stickers
-    for sticker in guild.stickers:
-        snapshot["stickers"].append({
-            "id": sticker.id,
-            "name": sticker.name,
-            "format": str(sticker.format)
-        })
-
     # Save to disk
-    save_snapshot(snapshot)
-    return snapshot
-
-def save_snapshot(snapshot):
-    guild_id = snapshot["guild_id"]
     os.makedirs("data/snapshots", exist_ok=True)
-    with open(f"data/snapshots/{guild_id}.json", "w") as f:
+    with open(f"data/snapshots/{guild.id}.json", "w") as f:
         json.dump(snapshot, f, indent=2)
+
+    print(f"✅ Captured snapshot for guild: {guild.name}")
+    return snapshot
 
 def load_snapshot(guild_id):
     try:
         with open(f"data/snapshots/{guild_id}.json", "r") as f:
             return json.load(f)
-    except FileNotFoundError:
+    except (FileNotFoundError, json.JSONDecodeError):
         return None
